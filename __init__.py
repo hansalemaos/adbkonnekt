@@ -143,7 +143,7 @@ def get_all_devices_infos(adb_path):
                     break
             except Exception as e:
                 sys.stderr.write(f"{e}\n")
-                sys.flush()
+                sys.stderr.flush()
 
 
 def timerdeviceinfo(adb_path, update_shared_devices_info=30):
@@ -152,7 +152,7 @@ def timerdeviceinfo(adb_path, update_shared_devices_info=30):
         get_all_devices_infos(adb_path)
     except Exception as fe:
         sys.stderr.write(f"{fe}\n")
-        sys.flush()
+        sys.stderr.flush()
     t = Timer(
         update_shared_devices_info,
         timerdeviceinfo,
@@ -178,7 +178,7 @@ def timerconnect(
     p = subprocess.run(
         [adb_path, "devices", "-l"], capture_output=True, **invisibledict
     )
-    no_auto_connect_list = []
+    no_auto_connect_list = [b'5037']
 
     for q in p.stdout.splitlines():
         try:
@@ -207,7 +207,7 @@ def timerconnect(
         )
     except Exception as fe:
         sys.stderr.write(f"{fe}\n")
-        sys.flush()
+        sys.stderr.flush()
 
     t = Timer(
         new_connection_interval,
