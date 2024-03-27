@@ -23,6 +23,7 @@ from time import strftime
 from konfigleser import parse_data_from_config_file
 from sharedbuiltinmutables import MemSharedDict, MemSharedList
 import ast
+from procciao import kill_proc
 
 iswindows = "win" in platform.platform().lower()
 
@@ -79,13 +80,28 @@ def get_short_path_name(long_name):
 
 
 def send_ctrl_commands(pid, command=0):
-    if iswindows:
-        commandstring = r"""import ctypes, sys; CTRL_C_EVENT, CTRL_BREAK_EVENT, CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT = 0, 1, 2, 3, 4; kernel32 = ctypes.WinDLL("kernel32", use_last_error=True); (lambda pid, cmdtosend=CTRL_C_EVENT: [kernel32.FreeConsole(), kernel32.AttachConsole(pid), kernel32.SetConsoleCtrlHandler(None, 1), kernel32.GenerateConsoleCtrlEvent(cmdtosend, 0), sys.exit(0) if isinstance(pid, int) else None])(int(sys.argv[1]), int(sys.argv[2]) if len(sys.argv) > 2 else None) if __name__ == '__main__' else None"""
-        subprocess.Popen(
-            [sys.executable, "-c", commandstring, str(pid), str(command)],
-            **invisibledict,
-        )  # Send Ctrl-C
-        sleep(0.1)
+    kill_proc(
+    pid=pid,
+    kill_timeout=5,    protect_myself=True,  # important, protect_myselfis False, you might kill the whole python process you are in.
+    winkill_sigint_dll=True,  # dll first
+    winkill_sigbreak_dll=True,
+    winkill_sigint=True,  # exe from outside
+    winkill_sigbreak=True,
+    powershell_sigint=True,
+    powershell_sigbreak=True,
+    powershell_close=True,
+    multi_children_kill=True,  # try to kill each child one by one
+    multi_children_always_ignore_pids=(0, 4),  # ignore system processes
+    print_output=False,
+    taskkill_as_last_option=True,  # this always works, but it is not gracefully anymore
+)
+    # if iswindows:
+    #     commandstring = r"""import ctypes, sys; CTRL_C_EVENT, CTRL_BREAK_EVENT, CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT = 0, 1, 2, 3, 4; kernel32 = ctypes.WinDLL("kernel32", use_last_error=True); (lambda pid, cmdtosend=CTRL_C_EVENT: [kernel32.FreeConsole(), kernel32.AttachConsole(pid), kernel32.SetConsoleCtrlHandler(None, 1), kernel32.GenerateConsoleCtrlEvent(cmdtosend, 0), sys.exit(0) if isinstance(pid, int) else None])(int(sys.argv[1]), int(sys.argv[2]) if len(sys.argv) > 2 else None) if __name__ == '__main__' else None"""
+    #     subprocess.Popen(
+    #         [sys.executable, "-c", commandstring, str(pid), str(command)],
+    #         **invisibledict,
+    #     )  # Send Ctrl-C
+    #     sleep(0.1)
 
 
 def get_all_devices_infos(adb_path):
@@ -178,7 +194,7 @@ def timerconnect(
     p = subprocess.run(
         [adb_path, "devices", "-l"], capture_output=True, **invisibledict
     )
-    no_auto_connect_list = [b'5037']
+    no_auto_connect_list = []
 
     for q in p.stdout.splitlines():
         try:
